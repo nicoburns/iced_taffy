@@ -52,7 +52,7 @@ impl Sandbox for Example {
         grid()
             .width(Length::Fill)
             .height(Length::Fill)
-            .with_columns(vec![fr(1.), percent(0.5), fr(1.)])
+            .with_columns(vec![fr(1.), flex(2.), fr(1.)])
             .with_rows(vec![auto(), auto(), fr(1.)])
             .with_column_gap(points(20.))
             .with_row_gap(points(20.))
@@ -66,7 +66,7 @@ impl Sandbox for Example {
                         style.justify_self = Some(AlignSelf::Center);
                     })
                     .with_styled_child(text(REALLY_LONG_PARAGRAPH).width(Length::Units(100)), |style| {
-                        style.padding = points(40.);
+                        style.margin = points(40.);
                     })
             })
             .with_child(rect(20.0, RED))
