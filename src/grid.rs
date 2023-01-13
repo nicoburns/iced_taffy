@@ -227,6 +227,26 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
         self
     }
 
+    pub fn min_height(mut self, size: taffy::Dimension) -> Self {
+        self.style.min_size.height = size;
+        self
+    }
+
+    pub fn min_width(mut self, size: taffy::Dimension) -> Self {
+        self.style.min_size.width = size;
+        self
+    }
+
+    pub fn max_height(mut self, size: taffy::Dimension) -> Self {
+        self.style.max_size.height = size;
+        self
+    }
+
+    pub fn max_width(mut self, size: taffy::Dimension) -> Self {
+        self.style.max_size.width = size;
+        self
+    }
+
     pub fn with_styled_child(
         mut self,
         element: impl Into<Element<'a, Msg, R>>,
