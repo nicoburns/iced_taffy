@@ -2,7 +2,17 @@
 name = "iced_taffy"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = [
+    "Nico Burns <nico@nicoburns.com>",
+]
+include = ["src/**/*", "Cargo.toml", "README.md"]
+description = "Library for using Taffy layout with the Iced GUI framework."
+repository = "https://github.com/nicoburns/iced_taffy"
+keywords = ["cross-platform", "layout", "css-grid"]
+categories = ["gui"]
+license = "MIT"
 
 [dependencies]
+iced = { git = "https://github.com/iced-rs/iced.git", rev = "d2b66805b350b4bd2ca5cb2818a6c05e3cfb5235", features = ["image", "debug"] }
+iced_native = { git = "https://github.com/iced-rs/iced.git", rev = "d2b66805b350b4bd2ca5cb2818a6c05e3cfb5235" }
+taffy = { git = "https://github.com/nicoburns/taffy.git", rev = "8302443b4fad3b07a970474c68a6a5eba76bec3f" }
