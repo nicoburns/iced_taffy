@@ -53,7 +53,7 @@ impl Sandbox for Example {
             .width(Length::Fill)
             .height(Length::Fill)
             .with_columns(vec![fr(1.), percent(0.5), fr(1.)])
-            .with_rows(vec![fr(1.), auto(), fr(1.)])
+            .with_rows(vec![auto(), auto(), fr(1.)])
             .with_column_gap(points(20.))
             .with_row_gap(points(20.))
             .with_child(rect(20.0, BLACK))

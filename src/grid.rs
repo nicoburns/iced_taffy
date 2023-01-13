@@ -328,7 +328,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
         let available_space = parent_size.map(|s| s.into());
         let sizing_mode = taffy::SizingMode::InherentSize;
 
-        taffy::CssGridAlgorithm::perform_layout(
+        let size_and_baselines = taffy::CssGridAlgorithm::perform_layout(
             &mut node_ref,
             known_dimensions,
             parent_size,
@@ -370,8 +370,8 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
 
         return layout::Node::with_children(
             Size {
-                width: node_ref.layout.size.width,
-                height: node_ref.layout.size.height,
+                width: size_and_baselines.size.width,
+                height: size_and_baselines.size.height,
             },
             child_nodes,
         );
