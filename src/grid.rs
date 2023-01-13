@@ -315,10 +315,10 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
         };
 
         let mut known_dimensions = taffy::Size::NONE;
-        if limits.min().height > f32::INFINITY && limits.min().height == limits.max().height {
+        if limits.min().height < f32::INFINITY && limits.min().height == limits.max().height {
             known_dimensions.height = Some(limits.min().height);
         }
-        if limits.min().width > f32::INFINITY && limits.min().width == limits.max().width {
+        if limits.min().width < f32::INFINITY && limits.min().width == limits.max().width {
             known_dimensions.width = Some(limits.min().width);
         }
         let parent_size = taffy::Size {
