@@ -153,12 +153,10 @@ impl<'node, 'a, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a
 
         // Set constraints based on available_space
         if let taffy::AvailableSpace::Definite(height) = available_space.height {
-            limits = limits.height(Length::Units(height.round() as u16));
-            limits = limits.min_height(0);
+            limits = limits.max_height(height.round() as u32);
         }
         if let taffy::AvailableSpace::Definite(width) = available_space.width {
-            limits = limits.width(Length::Units(width.round() as u16));
-            limits = limits.min_width(0);
+            limits = limits.max_width(width.round() as u32);
         }
 
         // Set constraints based on known dimensions
