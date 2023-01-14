@@ -13,6 +13,6 @@ categories = ["gui"]
 license = "MIT"
 
 [dependencies]
-iced = { git = "https://github.com/iced-rs/iced.git", rev = "d2b66805b350b4bd2ca5cb2818a6c05e3cfb5235", features = ["image", "debug"] }
-iced_native = { git = "https://github.com/iced-rs/iced.git", rev = "d2b66805b350b4bd2ca5cb2818a6c05e3cfb5235" }
+iced = { version = "0.7", features = ["image", "debug"] }
+iced_native = { version = "0.8" }
 taffy = { git = "https://github.com/nicoburns/taffy.git", rev = "8302443b4fad3b07a970474c68a6a5eba76bec3f" }
