@@ -59,16 +59,11 @@ struct GridLayoutTree<'node, 'a, Msg, R: Renderer> {
 }
 
 impl<'node, 'a, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a, Msg, R> {
-    fn current_node_id(&self) -> taffy::Node {
-        todo!()
-    }
+    type ChildId = usize;
+    type ChildIter<'iter> = std::ops::Range<usize> where Self: 'iter;
 
     fn style(&self) -> &taffy::Style {
         &self.grid.style
-    }
-
-    fn layout(&self) -> &taffy::Layout {
-        &self.layout
     }
 
     fn layout_mut(&mut self) -> &mut taffy::Layout {
@@ -79,22 +74,6 @@ impl<'node, 'a, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a
         &mut self.cache[index]
     }
 
-    fn measure_node(
-        &self,
-        _known_dimensions: taffy::Size<Option<f32>>,
-        _available_space: taffy::Size<taffy::AvailableSpace>,
-    ) -> taffy::Size<f32> {
-        // This will never be called because needs_measure always returns false
-        unreachable!();
-    }
-
-    fn needs_measure(&self) -> bool {
-        false
-    }
-
-    type ChildId = usize;
-    type ChildIter<'t> = std::ops::Range<usize> where Self: 't;
-
     fn children(&self) -> Self::ChildIter<'_> {
         0..(self.child_count())
     }
@@ -103,20 +82,12 @@ impl<'node, 'a, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a
         self.grid.children.len()
     }
 
-    fn is_childless(&self) -> bool {
-        self.child_count() == 0
-    }
-
     fn child(&self, index: usize) -> Self::ChildId {
         index
     }
 
     fn child_style(&self, child_node_id: Self::ChildId) -> &taffy::Style {
         &self.grid.child_styles[child_node_id]
-    }
-
-    fn child_layout(&self, child_node_id: Self::ChildId) -> &taffy::Layout {
-        &self.child_layouts[child_node_id]
     }
 
     fn child_layout_mut(&mut self, child_node_id: Self::ChildId) -> &mut taffy::Layout {
