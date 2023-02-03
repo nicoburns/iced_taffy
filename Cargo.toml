@@ -15,4 +15,4 @@ license = "MIT"
 [dependencies]
 iced = { version = "0.7", features = ["image", "debug"] }
 iced_native = { version = "0.8" }
-taffy = { git = "https://github.com/nicoburns/taffy.git", rev = "3a7109ecae3d59315cc2530074a3f2680d606f41" }
+taffy = { git = "https://github.com/nicoburns/taffy.git", rev = "b31485bec164e02390c9382f97d656d8854eac30" }
