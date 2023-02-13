@@ -218,6 +218,14 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
         self
     }
 
+    pub fn style(
+        mut self,
+        mut callback: impl FnMut(&mut taffy::Style),
+    ) -> Self {
+        callback(&mut self.style);
+        self
+    }
+
     pub fn with_styled_child(
         mut self,
         element: impl Into<Element<'a, Msg, R>>,
