@@ -10,10 +10,6 @@ mod common {
 use common::rect::rect;
 use common::colors::*;
 
-fn fr(fraction: f32) -> TrackSizingFunction {
-    minmax(points(0.0), flex(fraction))
-}
-
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
@@ -50,10 +46,13 @@ impl Sandbox for Example {
     fn view(&self) -> Element<Message> {
         const REALLY_LONG_PARAGRAPH : &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
         grid()
-            .with_columns(vec![fr(1.), flex(2.), fr(1.)])
-            .with_rows(vec![auto(), auto(), fr(1.)])
-            .with_column_gap(points(20.))
-            .with_row_gap(points(20.))
+            .with_columns(vec![flex(1.), flex(2.), flex(1.)])
+            .with_rows(vec![auto(), auto(), flex(1.)])
+            .style(|style| {
+                style.size.width = percent(1.);
+                style.size.height = percent(1.);
+                style.gap = points(20.);
+            })
             .with_child(rect(20.0, BLACK))
             .with_child({
                 grid()
@@ -72,8 +71,8 @@ impl Sandbox for Example {
             .with_child(rect(20.0, COLOR4))
             .with_child({
                 grid()
-                    .with_columns(vec![fr(1.), fr(2.), fr(1.)])
-                    .with_rows(vec![fr(1.), percent(0.5), fr(1.)])
+                    .with_columns(vec![flex(1.), flex(2.), flex(1.)])
+                    .with_rows(vec![flex(1.), percent(0.5), flex(1.)])
                     .with_child(rect(20.0, COLOR7))
                     .with_child(rect(20.0, COLOR8))
                     .with_child(rect(20.0, COLOR9))
