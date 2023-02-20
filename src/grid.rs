@@ -40,16 +40,16 @@ fn f32_to_opt(input: f32) -> Option<f32> {
 //     }
 // }
 
-struct GridLayoutTree<'node, 'a, Msg, R: Renderer> {
-    grid: &'node Grid<'a, Msg, R>,
-    renderer: &'a R,
+struct GridLayoutTree<'node, 'a, 'b, Msg, R: Renderer> {
+    grid: &'node mut Grid<'a, Msg, R>,
+    renderer: &'b R,
     layout: taffy::Layout,
     cache: [Option<taffy::CacheEntry>; 5],
     child_layouts: Vec<taffy::Layout>,
     // child_caches: Vec<[Option<taffy::CacheEntry>; 5]>,
 }
 
-impl<'node, 'a, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a, Msg, R> {
+impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a, 'b, Msg, R> {
     type ChildId = usize;
     type ChildIter<'iter> = std::ops::Range<usize> where Self: 'iter;
 
@@ -131,7 +131,7 @@ impl<'node, 'a, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a
 
         // Compute child layout
         let iced_layout = self.grid.children[child_node_id]
-            .as_widget()
+            .as_widget_mut()
             .layout(&self.renderer, &limits);
         let bounds = iced_layout.bounds();
 
@@ -287,7 +287,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
         self.height
     }
 
-    fn layout(&self, renderer: &R, limits: &layout::Limits) -> layout::Node {
+    fn layout(&mut self, renderer: &R, limits: &layout::Limits) -> layout::Node {
         // let limits = limits
         //     .max_width(self.max_width)
         //     .width(self.width)
@@ -326,10 +326,11 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             sizing_mode,
         );
 
+        let child_layouts = node_ref.child_layouts;
         let child_nodes = self
             .children
-            .iter()
-            .zip(node_ref.child_layouts)
+            .iter_mut()
+            .zip(child_layouts)
             .map(|(child, mut taffy_layout)| {
                 taffy_layout.round();
 
@@ -338,7 +339,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
                     .height(Length::Fixed(taffy_layout.size.height));
 
                 let child_layouts = child
-                    .as_widget()
+                    .as_widget_mut()
                     .layout(renderer, &limits)
                     .children()
                     .to_owned();
@@ -441,7 +442,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
     }
 
     fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut R,
         theme: &R::Theme,
@@ -452,11 +453,11 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
     ) {
         for ((child, state), layout) in self
             .children
-            .iter()
+            .iter_mut()
             .zip(&tree.children)
             .zip(layout.children())
         {
-            child.as_widget().draw(
+            child.as_widget_mut().draw(
                 state,
                 renderer,
                 theme,

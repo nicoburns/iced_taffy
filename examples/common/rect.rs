@@ -42,7 +42,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _renderer: &Renderer,
         _limits: &layout::Limits,
     ) -> layout::Node {
@@ -50,7 +50,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         _state: &widget::Tree,
         renderer: &mut Renderer,
         _theme: &Renderer::Theme,
