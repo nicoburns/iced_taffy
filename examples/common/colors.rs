@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use iced::Color;
+use rand::prelude::*;
 
 pub const BLACK: Color = Color::BLACK;
 pub const RED: Color = Color::from_rgb(255. / 255., 0., 0.);
@@ -28,3 +29,15 @@ pub const COLOR19: Color = Color::from_rgb(0., 0., 117. / 255.);
 pub const COLOR20: Color = Color::from_rgb(128. / 255., 128. / 255., 128. / 255.);
 pub const COLOR21: Color = Color::from_rgb(255. / 255., 255. / 255., 255. / 255.);
 pub const COLOR22: Color = Color::from_rgb(0., 0., 0.);
+
+pub const ALL_COLORS: &[Color] = &[
+    BLACK, RED, GREEN, BLUE, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8,
+    COLOR9, COLOR10, COLOR11, COLOR12, COLOR13, COLOR14, COLOR15, COLOR16, COLOR17, COLOR18,
+    COLOR19, COLOR20, COLOR21, COLOR22,
+];
+
+pub fn random_color(rand: &mut impl Rng) -> Color {
+  const NUM_COLORS : usize = ALL_COLORS.len();
+  let index = rand.gen_range(0..NUM_COLORS);
+  ALL_COLORS[index]
+}
