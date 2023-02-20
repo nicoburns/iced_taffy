@@ -209,10 +209,7 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
         self
     }
 
-    pub fn style(
-        mut self,
-        mut callback: impl FnMut(&mut taffy::Style),
-    ) -> Self {
+    pub fn style(mut self, mut callback: impl FnMut(&mut taffy::Style)) -> Self {
         callback(&mut self.style);
         self
     }
