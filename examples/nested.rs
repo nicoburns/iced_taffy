@@ -60,7 +60,7 @@ impl Sandbox for Example {
                         style.align_self = Some(AlignSelf::Center);
                         style.justify_self = Some(AlignSelf::Center);
                     })
-                    .with_styled_child(text(REALLY_LONG_PARAGRAPH).width(Length::Units(100)), |style| {
+                    .with_styled_child(text(REALLY_LONG_PARAGRAPH).width(Length::Fixed(100.)), |style| {
                         style.margin = points(40.);
                     })
             })

@@ -115,18 +115,18 @@ impl<'node, 'a, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a
 
         // Set constraints based on available_space
         if let taffy::AvailableSpace::Definite(height) = available_space.height {
-            limits = limits.max_height(height.round() as u32);
+            limits = limits.max_height(height.round());
         }
         if let taffy::AvailableSpace::Definite(width) = available_space.width {
-            limits = limits.max_width(width.round() as u32);
+            limits = limits.max_width(width.round());
         }
 
         // Set constraints based on known dimensions
         if let Some(height) = known_dimensions.height {
-            limits = limits.height(Length::Units(height.round() as u16))
+            limits = limits.height(Length::Fixed(height.round()))
         }
         if let Some(width) = known_dimensions.width {
-            limits = limits.width(Length::Units(width.round() as u16))
+            limits = limits.width(Length::Fixed(width.round()))
         }
 
         // Compute child layout
@@ -272,7 +272,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
     fn width(&self) -> Length {
         // match self.style.size.width {
         //     Dimension::Auto => Length::Shrink,
-        //     Dimension::Points(units) => Length::Units(units.round() as u16),
+        //     Dimension::Points(units) => Length::Fixed(units.round() as u16),
         //     Dimension::Percent(_) => Length::Fill,
         // }
         self.width
@@ -281,7 +281,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
     fn height(&self) -> Length {
         // match self.style.size.height {
         //     Dimension::Auto => Length::Shrink,
-        //     Dimension::Points(units) => Length::Units(units.round() as u16),
+        //     Dimension::Points(units) => Length::Fixed(units.round() as u16),
         //     Dimension::Percent(_) => Length::Fill,
         // }
         self.height
@@ -334,8 +334,8 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
                 taffy_layout.round();
 
                 let limits = Limits::NONE
-                    .width(Length::Units(taffy_layout.size.width as u16))
-                    .height(Length::Units(taffy_layout.size.height as u16));
+                    .width(Length::Fixed(taffy_layout.size.width))
+                    .height(Length::Fixed(taffy_layout.size.height));
 
                 let child_layouts = child
                     .as_widget()
