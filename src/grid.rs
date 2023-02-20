@@ -89,18 +89,48 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
         &mut self,
         child_node_id: Self::ChildId,
         known_dimensions: taffy::Size<Option<f32>>,
-        parent_size: taffy::Size<Option<f32>>,
+        _parent_size: taffy::Size<Option<f32>>,
         available_space: taffy::Size<taffy::AvailableSpace>,
         sizing_mode: taffy::SizingMode,
     ) -> taffy::Size<f32> {
-        self.perform_child_layout(
-            child_node_id,
-            known_dimensions,
-            parent_size,
-            available_space,
-            sizing_mode,
-        )
-        .size
+        let mut limits = Limits::NONE;
+
+        // Set constraints based on available_space
+        if let taffy::AvailableSpace::Definite(height) = available_space.height {
+            limits = limits.max_height(height.round());
+        }
+        if let taffy::AvailableSpace::Definite(width) = available_space.width {
+            limits = limits.max_width(width.round());
+        }
+
+        // Set constraints based on known dimensions
+        if let Some(height) = known_dimensions.height {
+            limits = limits.height(Length::Fixed(height.round()))
+        }
+        if let Some(width) = known_dimensions.width {
+            limits = limits.width(Length::Fixed(width.round()))
+        }
+
+        let cache = &mut self.grid.child_caches[child_node_id];
+        let cached_size = cache.get(known_dimensions, available_space, taffy::RunMode::ComputeSize, sizing_mode);
+
+        let size = cached_size
+            .map(|size_and_baselines| size_and_baselines.size)
+            .unwrap_or_else(|| {
+                // Compute child layout
+                let iced_size = self.grid.children[child_node_id]
+                    .as_widget_mut()
+                    .measure(&self.renderer, &limits);
+                let taffy_size = taffy::Size {
+                    width: iced_size.width,
+                    height: iced_size.height,
+                };
+                cache.store(known_dimensions, available_space, taffy::RunMode::ComputeSize, taffy_size.into());
+                taffy_size
+            });
+
+        // Return size
+        size
     }
 
     fn perform_child_layout(
@@ -288,6 +318,48 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
         //     Dimension::Percent(_) => Length::Fill,
         // }
         self.height
+    }
+
+    fn measure(&mut self, renderer: &R, limits: &layout::Limits) -> iced_native::Size {
+
+        let child_count = self.children.len();
+
+        let mut node_ref = GridLayoutTree {
+            grid: self,
+            renderer,
+            // cache: [None; 5],
+            layout: taffy::NULL_LAYOUT,
+            child_layouts: vec![taffy::NULL_LAYOUT; child_count],
+            granchild_layouts: vec![vec![]; child_count],
+            // child_caches: vec![[None; 5]; child_count],
+        };
+
+        let mut known_dimensions = taffy::Size::NONE;
+        if limits.min().height < f32::INFINITY && limits.min().height == limits.max().height {
+            known_dimensions.height = Some(limits.min().height);
+        }
+        if limits.min().width < f32::INFINITY && limits.min().width == limits.max().width {
+            known_dimensions.width = Some(limits.min().width);
+        }
+        let parent_size = taffy::Size {
+            width: f32_to_opt(limits.max().width),
+            height: f32_to_opt(limits.max().height),
+        };
+        let available_space = parent_size.map(|s| s.into());
+        let sizing_mode = taffy::SizingMode::InherentSize;
+
+        let size = taffy::CssGridAlgorithm::measure_size(
+            &mut node_ref,
+            known_dimensions,
+            parent_size,
+            available_space,
+            sizing_mode,
+        );
+
+        Size {
+            width: size.width,
+            height: size.height
+        }
     }
 
     fn layout(&mut self, renderer: &R, limits: &layout::Limits) -> layout::Node {
