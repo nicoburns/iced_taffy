@@ -1,19 +1,19 @@
 use iced::{Element, Sandbox, Settings};
 use iced_native::Renderer;
 use iced_taffy::{grid, Grid};
-use taffy::prelude::*;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 use std::iter;
+use taffy::prelude::*;
 
 mod common {
-    pub mod rect;
     pub mod colors;
     pub mod layout_timer;
+    pub mod rect;
 }
-use common::rect::rect;
 use common::colors::*;
 use common::layout_timer::LayoutTimer;
+use common::rect::rect;
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -47,10 +47,21 @@ fn random_grid_track<R: Rng>(rng: &mut R) -> TrackSizingFunction {
     }
 }
 
-fn random_nxn_grid<'a, R: Rng, M, Rend: Renderer>(rng: &mut R, track_count: usize) -> Grid<'a, M, Rend> {
+fn random_nxn_grid<'a, R: Rng, M, Rend: Renderer>(
+    rng: &mut R,
+    track_count: usize,
+) -> Grid<'a, M, Rend> {
     grid()
-        .with_columns(iter::from_fn(|| Some(random_grid_track(rng))).take(track_count).collect())
-        .with_rows(iter::from_fn(|| Some(random_grid_track(rng))).take(track_count).collect())
+        .with_columns(
+            iter::from_fn(|| Some(random_grid_track(rng)))
+                .take(track_count)
+                .collect(),
+        )
+        .with_rows(
+            iter::from_fn(|| Some(random_grid_track(rng)))
+                .take(track_count)
+                .collect(),
+        )
 }
 
 /// A helper function to recursively construct a deep tree
@@ -83,7 +94,10 @@ pub fn build_deep_grid_tree<'a, R: Rng, M: 'a, Rend: Renderer + 'a>(
 }
 
 /// A tree with a higher depth for a more realistic scenario
-fn build_taffy_deep_grid_hierarchy<'a, M: 'a, Rend: Renderer + 'a>(levels: usize, track_count: usize) -> Grid<'a, M, Rend> {
+fn build_taffy_deep_grid_hierarchy<'a, M: 'a, Rend: Renderer + 'a>(
+    levels: usize,
+    track_count: usize,
+) -> Grid<'a, M, Rend> {
     let mut rng = ChaCha8Rng::seed_from_u64(12345);
     let mut grid = random_nxn_grid(&mut rng, track_count);
     let mut node_count = 0;

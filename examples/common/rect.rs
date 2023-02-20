@@ -41,11 +41,7 @@ where
         Length::Shrink
     }
 
-    fn layout(
-        &mut self,
-        _renderer: &Renderer,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, _renderer: &Renderer, _limits: &layout::Limits) -> layout::Node {
         layout::Node::new(Size::new(self.size, self.size))
     }
 
@@ -62,7 +58,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: layout.bounds(),
-                border_radius: 0.0.into(),//self.radius.into(),
+                border_radius: 0.0.into(), //self.radius.into(),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },

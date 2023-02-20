@@ -30,17 +30,6 @@ fn f32_to_opt(input: f32) -> Option<f32> {
     }
 }
 
-// struct GridBuilder<'builder, 'a, Msg, R: Renderer> {
-//     grid: &'builder mut Grid<'a, Msg, R>,
-// }
-
-// impl<'builder, 'a, Msg, R: Renderer> GridBuilder<'builder, 'a, Msg, R> {
-
-//     pub fn child(&mut self, child: Element<'a, Msg, R>) {
-//         self.grid.children.push(child)
-//     }
-// }
-
 struct GridLayoutTree<'node, 'a, 'b, Msg, R: Renderer> {
     grid: &'node mut Grid<'a, Msg, R>,
     renderer: &'b R,

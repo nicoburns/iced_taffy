@@ -4,13 +4,13 @@ use iced_taffy::grid;
 use taffy::prelude::*;
 
 mod common {
-    pub mod rect;
     pub mod colors;
     pub mod layout_timer;
+    pub mod rect;
 }
-use common::rect::rect;
 use common::colors::*;
 use common::layout_timer::LayoutTimer;
+use common::rect::rect;
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -44,7 +44,6 @@ impl Sandbox for Example {
         }
     }
 
-
     fn view(&self) -> Element<Message> {
         const REALLY_LONG_PARAGRAPH : &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
         let content = grid()
@@ -58,13 +57,19 @@ impl Sandbox for Example {
             .with_child(rect(20.0, BLACK))
             .with_child({
                 grid()
-                    .with_styled_child(text(format!("Button clicked {} times", self.click_count)).size(32), |style| {
-                        style.align_self = Some(AlignSelf::Center);
-                        style.justify_self = Some(AlignSelf::Center);
-                    })
-                    .with_styled_child(text(REALLY_LONG_PARAGRAPH).width(Length::Fixed(100.)), |style| {
-                        style.margin = points(40.);
-                    })
+                    .with_styled_child(
+                        text(format!("Button clicked {} times", self.click_count)).size(32),
+                        |style| {
+                            style.align_self = Some(AlignSelf::Center);
+                            style.justify_self = Some(AlignSelf::Center);
+                        },
+                    )
+                    .with_styled_child(
+                        text(REALLY_LONG_PARAGRAPH).width(Length::Fixed(100.)),
+                        |style| {
+                            style.margin = points(40.);
+                        },
+                    )
             })
             .with_child(rect(20.0, RED))
             .with_child(rect(20.0, COLOR1))

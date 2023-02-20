@@ -37,7 +37,7 @@ pub const ALL_COLORS: &[Color] = &[
 ];
 
 pub fn random_color(rand: &mut impl Rng) -> Color {
-  const NUM_COLORS : usize = ALL_COLORS.len();
-  let index = rand.gen_range(0..NUM_COLORS);
-  ALL_COLORS[index]
+    const NUM_COLORS: usize = ALL_COLORS.len();
+    let index = rand.gen_range(0..NUM_COLORS);
+    ALL_COLORS[index]
 }

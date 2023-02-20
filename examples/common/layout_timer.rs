@@ -49,7 +49,10 @@ impl<'a, Message: Clone, R: Renderer> Widget<Message, R> for LayoutTimer<'a, Mes
     fn layout(&mut self, renderer: &R, limits: &layout::Limits) -> layout::Node {
         let start = std::time::Instant::now();
         let layout = self.content.as_widget_mut().layout(renderer, limits);
-        println!("Layout took: {:.3}ms", start.elapsed().as_micros() as f64 / 1000.0);
+        println!(
+            "Layout took: {:.3}ms",
+            start.elapsed().as_micros() as f64 / 1000.0
+        );
         layout
     }
 
@@ -65,12 +68,9 @@ impl<'a, Message: Clone, R: Renderer> Widget<Message, R> for LayoutTimer<'a, Mes
         operation: &mut dyn Operation<Message>,
     ) {
         operation.container(None, &mut |operation| {
-            self.content.as_widget().operate(
-                tree,
-                layout,
-                renderer,
-                operation,
-            );
+            self.content
+                .as_widget()
+                .operate(tree, layout, renderer, operation);
         });
     }
 
@@ -139,11 +139,7 @@ impl<'a, Message: Clone, R: Renderer> Widget<Message, R> for LayoutTimer<'a, Mes
         layout: Layout<'_>,
         renderer: &R,
     ) -> Option<overlay::Element<'b, Message, R>> {
-        self.content.as_widget_mut().overlay(
-            tree,
-            layout,
-            renderer,
-        )
+        self.content.as_widget_mut().overlay(tree, layout, renderer)
     }
 }
 
