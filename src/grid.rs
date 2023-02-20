@@ -45,8 +45,6 @@ struct GridLayoutTree<'node, 'a, 'b, Msg, R: Renderer> {
     grid: &'node mut Grid<'a, Msg, R>,
     renderer: &'b R,
     layout: taffy::Layout,
-    child_layouts: Vec<taffy::Layout>,
-    granchild_layouts: Vec<Vec<iced_native::layout::Node>>,
 }
 
 impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a, 'b, Msg, R> {
@@ -78,7 +76,7 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
     }
 
     fn child_layout_mut(&mut self, child_node_id: Self::ChildId) -> &mut taffy::Layout {
-        &mut self.child_layouts[child_node_id]
+        &mut self.grid.child_layouts[child_node_id]
     }
 
     fn measure_child_size(
@@ -135,7 +133,7 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
         known_dimensions: taffy::Size<Option<f32>>,
         _parent_size: taffy::Size<Option<f32>>,
         available_space: taffy::Size<taffy::AvailableSpace>,
-        _sizing_mode: taffy::SizingMode,
+        sizing_mode: taffy::SizingMode,
     ) -> taffy::SizeAndBaselines {
         let mut limits = Limits::NONE;
 
@@ -155,25 +153,34 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
             limits = limits.width(Length::Fixed(width.round()))
         }
 
-        // Compute child layout
-        let iced_layout = self.grid.children[child_node_id]
-            .as_widget_mut()
-            .layout(&self.renderer, &limits);
-        let bounds = iced_layout.bounds();
-        self.granchild_layouts[child_node_id] = iced_layout.into_children();
+        let cache = &mut self.grid.child_caches[child_node_id];
+        let cached_layout = cache.get(known_dimensions, available_space, taffy::RunMode::PeformLayout, sizing_mode);
+
+        let layout = cached_layout.unwrap_or_else(|| {
+            // Compute child layout
+            let iced_layout = self.grid.children[child_node_id]
+                .as_widget_mut()
+                .layout(&self.renderer, &limits);
+            let bounds = iced_layout.bounds();
+            let taffy_layout = taffy::SizeAndBaselines {
+                size: taffy::Size {
+                    width: bounds.width,
+                    height: bounds.height,
+                },
+                first_baselines: taffy::Point::NONE,
+            };
+            cache.store(known_dimensions, available_space, taffy::RunMode::PeformLayout, taffy_layout);
+            self.grid.granchild_layouts[child_node_id] = iced_layout.into_children();
+            taffy_layout
+        });
+
 
         // Return size
-        taffy::SizeAndBaselines {
-            size: taffy::Size {
-                width: bounds.width,
-                height: bounds.height,
-            },
-            first_baselines: taffy::Point::NONE,
-        }
+        layout
     }
 
     fn perform_child_hidden_layout(&mut self, child_node_id: Self::ChildId, order: u32) {
-        self.child_layouts[child_node_id] = taffy::Layout::with_order(order);
+        self.grid.child_layouts[child_node_id] = taffy::Layout::with_order(order);
     }
 }
 
@@ -184,6 +191,8 @@ pub struct Grid<'a, Msg, R: Renderer> {
     children: Vec<Element<'a, Msg, R>>,
     child_styles: Vec<taffy::Style>,
     child_caches: Vec<taffy::Cache>,
+    child_layouts: Vec<taffy::Layout>,
+    granchild_layouts: Vec<Vec<iced_native::layout::Node>>,
 }
 
 impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
@@ -195,6 +204,8 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
             children: vec![],
             child_styles: vec![],
             child_caches: vec![],
+            child_layouts: vec![],
+            granchild_layouts: vec![],
         }
     }
 
@@ -266,6 +277,8 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
     pub fn add_child(&mut self, element: impl Into<Element<'a, Msg, R>>) {
         self.child_styles.push(taffy::Style::DEFAULT);
         self.child_caches.push(taffy::Cache::new());
+        self.child_layouts.push(taffy::NULL_LAYOUT);
+        self.granchild_layouts.push(vec![]);
         self.children.push(element.into());
     }
 
@@ -326,11 +339,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
         let mut node_ref = GridLayoutTree {
             grid: self,
             renderer,
-            // cache: [None; 5],
             layout: taffy::NULL_LAYOUT,
-            child_layouts: vec![taffy::NULL_LAYOUT; child_count],
-            granchild_layouts: vec![vec![]; child_count],
-            // child_caches: vec![[None; 5]; child_count],
         };
 
         let mut known_dimensions = taffy::Size::NONE;
@@ -373,8 +382,6 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             grid: self,
             renderer,
             layout: taffy::NULL_LAYOUT,
-            child_layouts: vec![taffy::NULL_LAYOUT; child_count],
-            granchild_layouts: vec![vec![]; child_count],
         };
 
         let mut known_dimensions = taffy::Size::NONE;
@@ -399,9 +406,8 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             sizing_mode,
         );
 
-        let mut child_layouts = node_ref.child_layouts;
-        let granchild_layouts = node_ref.granchild_layouts;
-        let child_nodes = child_layouts
+        let granchild_layouts = self.granchild_layouts.clone();
+        let child_nodes = self.child_layouts
             .iter_mut()
             .zip(granchild_layouts)
             .map(|(taffy_layout, granchild_layouts)| {
