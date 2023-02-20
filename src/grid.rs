@@ -262,6 +262,9 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
         let mut style = taffy::Style::DEFAULT;
         callback(&mut style);
         self.child_styles.push(style);
+        self.child_caches.push(taffy::Cache::new());
+        self.child_layouts.push(taffy::NULL_LAYOUT);
+        self.granchild_layouts.push(vec![]);
         self.children.push(element.into());
 
         self
@@ -269,6 +272,9 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
 
     pub fn with_child(mut self, element: impl Into<Element<'a, Msg, R>>) -> Self {
         self.child_styles.push(taffy::Style::DEFAULT);
+        self.child_caches.push(taffy::Cache::new());
+        self.child_layouts.push(taffy::NULL_LAYOUT);
+        self.granchild_layouts.push(vec![]);
         self.children.push(element.into());
 
         self
