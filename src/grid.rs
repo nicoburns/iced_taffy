@@ -9,10 +9,11 @@ use iced_native::{Clipboard, Element, Layout, Length, Point, Rectangle, Shell, S
 
 use ::taffy::LayoutAlgorithm;
 mod taffy {
-    pub use ::taffy::layout::{Cache as CacheEntry, Layout, RunMode, SizeAndBaselines, SizingMode};
+    pub use ::taffy::layout::{Layout, RunMode, SizeAndBaselines, SizingMode};
     pub use ::taffy::*;
     pub use taffy::geometry::*;
     pub use taffy::prelude::*;
+    pub use taffy::cache::Cache;
 
     pub const NULL_LAYOUT: Layout = Layout {
         order: 0,
@@ -44,9 +45,8 @@ struct GridLayoutTree<'node, 'a, 'b, Msg, R: Renderer> {
     grid: &'node mut Grid<'a, Msg, R>,
     renderer: &'b R,
     layout: taffy::Layout,
-    cache: [Option<taffy::CacheEntry>; 5],
     child_layouts: Vec<taffy::Layout>,
-    // child_caches: Vec<[Option<taffy::CacheEntry>; 5]>,
+    granchild_layouts: Vec<Vec<iced_native::layout::Node>>,
 }
 
 impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a, 'b, Msg, R> {
@@ -59,10 +59,6 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
 
     fn layout_mut(&mut self) -> &mut taffy::Layout {
         &mut self.layout
-    }
-
-    fn cache_mut(&mut self, index: usize) -> &mut Option<taffy::CacheEntry> {
-        &mut self.cache[index]
     }
 
     fn children(&self) -> Self::ChildIter<'_> {
@@ -163,6 +159,7 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
         let iced_layout = self.grid.children[child_node_id]
             .as_widget_mut()
             .layout(&self.renderer, &limits);
+        self.granchild_layouts[child_node_id] = iced_layout.children().to_owned();
         let bounds = iced_layout.bounds();
 
         // Return size
@@ -186,6 +183,7 @@ pub struct Grid<'a, Msg, R: Renderer> {
     style: taffy::Style,
     children: Vec<Element<'a, Msg, R>>,
     child_styles: Vec<taffy::Style>,
+    child_caches: Vec<taffy::Cache>,
 }
 
 impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
@@ -196,6 +194,7 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
             style: taffy::Style::DEFAULT,
             children: vec![],
             child_styles: vec![],
+            child_caches: vec![],
         }
     }
 
@@ -373,10 +372,9 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
         let mut node_ref = GridLayoutTree {
             grid: self,
             renderer,
-            cache: [None; 5],
             layout: taffy::NULL_LAYOUT,
             child_layouts: vec![taffy::NULL_LAYOUT; child_count],
-            // child_caches: vec![[None; 5]; child_count],
+            granchild_layouts: vec![vec![]; child_count],
         };
 
         let mut known_dimensions = taffy::Size::NONE;
@@ -401,30 +399,20 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             sizing_mode,
         );
 
-        let child_layouts = node_ref.child_layouts;
-        let child_nodes = self
-            .children
+        let mut child_layouts = node_ref.child_layouts;
+        let granchild_layouts = node_ref.granchild_layouts;
+        let child_nodes = child_layouts
             .iter_mut()
-            .zip(child_layouts)
-            .map(|(child, mut taffy_layout)| {
+            .zip(granchild_layouts)
+            .map(|(taffy_layout, granchild_layouts)| {
                 taffy_layout.round();
-
-                let limits = Limits::NONE
-                    .width(Length::Fixed(taffy_layout.size.width))
-                    .height(Length::Fixed(taffy_layout.size.height));
-
-                let child_layouts = child
-                    .as_widget_mut()
-                    .layout(renderer, &limits)
-                    .children()
-                    .to_owned();
 
                 let mut iced_layout = layout::Node::with_children(
                     Size {
                         width: taffy_layout.size.width,
                         height: taffy_layout.size.height,
                     },
-                    child_layouts,
+                    granchild_layouts,
                 );
                 iced_layout.move_to(Point {
                     x: taffy_layout.location.x,
