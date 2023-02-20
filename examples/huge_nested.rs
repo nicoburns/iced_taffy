@@ -55,6 +55,7 @@ fn random_nxn_grid<'a, R: Rng, M, Rend: Renderer>(rng: &mut R, track_count: usiz
 pub fn build_deep_grid_tree<'a, R: Rng, M: 'a, Rend: Renderer + 'a>(
     parent: &mut Grid<'a, M, Rend>,
     rng: &mut R,
+    node_count: &mut usize,
     levels: usize,
     track_count: usize,
 ) {
@@ -64,6 +65,7 @@ pub fn build_deep_grid_tree<'a, R: Rng, M: 'a, Rend: Renderer + 'a>(
     if levels == 1 {
         // Build leaf nodes
         for _ in 0..child_count {
+            *node_count += 1;
             parent.add_child(rect(20.0, random_color(rng)))
         }
     } else {
@@ -71,7 +73,8 @@ pub fn build_deep_grid_tree<'a, R: Rng, M: 'a, Rend: Renderer + 'a>(
         // Each child gets an equal amount of the remaining nodes
         for _ in 0..child_count {
             let mut grid = random_nxn_grid(rng, track_count);
-            build_deep_grid_tree(&mut grid, rng, levels - 1, track_count);
+            *node_count += 1;
+            build_deep_grid_tree(&mut grid, rng, node_count, levels - 1, track_count);
             parent.add_child(grid);
         }
     }
@@ -81,7 +84,10 @@ pub fn build_deep_grid_tree<'a, R: Rng, M: 'a, Rend: Renderer + 'a>(
 fn build_taffy_deep_grid_hierarchy<'a, M: 'a, Rend: Renderer + 'a>(levels: usize, track_count: usize) -> Grid<'a, M, Rend> {
     let mut rng = ChaCha8Rng::seed_from_u64(12345);
     let mut grid = random_nxn_grid(&mut rng, track_count);
-    build_deep_grid_tree(&mut grid, &mut rng, levels, track_count);
+    let mut node_count = 0;
+    build_deep_grid_tree(&mut grid, &mut rng, &mut node_count, levels, track_count);
+
+    println!("node_count: {}", node_count);
 
     grid
 }
