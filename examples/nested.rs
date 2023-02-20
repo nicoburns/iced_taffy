@@ -6,9 +6,11 @@ use taffy::prelude::*;
 mod common {
     pub mod rect;
     pub mod colors;
+    pub mod layout_timer;
 }
 use common::rect::rect;
 use common::colors::*;
+use common::layout_timer::LayoutTimer;
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -45,7 +47,7 @@ impl Sandbox for Example {
 
     fn view(&self) -> Element<Message> {
         const REALLY_LONG_PARAGRAPH : &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
-        grid()
+        let content = grid()
             .with_columns(vec![flex(1.), flex(2.), flex(1.)])
             .with_rows(vec![auto(), auto(), flex(1.)])
             .style(|style| {
@@ -93,7 +95,8 @@ impl Sandbox for Example {
                         style.inset.top = points(10.);
                     })
             })
-            .with_child(rect(20.0, COLOR6))
-            .into()
+            .with_child(rect(20.0, COLOR6));
+
+        LayoutTimer::new(content).into()
     }
 }
