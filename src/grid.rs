@@ -234,6 +234,12 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
         self
     }
 
+    pub fn add_child(&mut self, element: impl Into<Element<'a, Msg, R>>) {
+        self.child_styles.push(taffy::Style::DEFAULT);
+        self.child_caches.push(taffy::Cache::new());
+        self.children.push(element.into());
+    }
+
     /// Sets the width of the [`Grid`].
     pub fn width(mut self, width: Length) -> Self {
         self.width = width;
