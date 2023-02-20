@@ -72,11 +72,11 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
     }
 
     fn child_style(&self, child_node_id: Self::ChildId) -> &taffy::Style {
-        &self.grid.child_styles[child_node_id]
+        &self.grid.children[child_node_id].style
     }
 
     fn child_layout_mut(&mut self, child_node_id: Self::ChildId) -> &mut taffy::Layout {
-        &mut self.grid.child_layouts[child_node_id]
+        &mut self.grid.children[child_node_id].taffy_layout
     }
 
     fn measure_child_size(
@@ -105,8 +105,8 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
             limits = limits.width(Length::Fixed(width.round()))
         }
 
-        let cache = &mut self.grid.child_caches[child_node_id];
-        let cached_size = cache.get(
+        let child = &mut self.grid.children[child_node_id];
+        let cached_size = child.cache.get(
             known_dimensions,
             available_space,
             taffy::RunMode::ComputeSize,
@@ -117,14 +117,15 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
             .map(|size_and_baselines| size_and_baselines.size)
             .unwrap_or_else(|| {
                 // Compute child layout
-                let iced_size = self.grid.children[child_node_id]
+                let iced_size = child
+                    .element
                     .as_widget_mut()
                     .measure(&self.renderer, &limits);
                 let taffy_size = taffy::Size {
                     width: iced_size.width,
                     height: iced_size.height,
                 };
-                cache.store(
+                child.cache.store(
                     known_dimensions,
                     available_space,
                     taffy::RunMode::ComputeSize,
@@ -163,8 +164,8 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
             limits = limits.width(Length::Fixed(width.round()))
         }
 
-        let cache = &mut self.grid.child_caches[child_node_id];
-        let cached_layout = cache.get(
+        let child = &mut self.grid.children[child_node_id];
+        let cached_layout = child.cache.get(
             known_dimensions,
             available_space,
             taffy::RunMode::PeformLayout,
@@ -173,7 +174,8 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
 
         let layout = cached_layout.unwrap_or_else(|| {
             // Compute child layout
-            let iced_layout = self.grid.children[child_node_id]
+            let iced_layout = child
+                .element
                 .as_widget_mut()
                 .layout(&self.renderer, &limits);
             let bounds = iced_layout.bounds();
@@ -184,13 +186,13 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
                 },
                 first_baselines: taffy::Point::NONE,
             };
-            cache.store(
+            child.cache.store(
                 known_dimensions,
                 available_space,
                 taffy::RunMode::PeformLayout,
                 taffy_layout,
             );
-            self.grid.granchild_layouts[child_node_id] = iced_layout.into_children();
+            child.iced_child_layouts = iced_layout.into_children();
             taffy_layout
         });
 
@@ -199,7 +201,27 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
     }
 
     fn perform_child_hidden_layout(&mut self, child_node_id: Self::ChildId, order: u32) {
-        self.grid.child_layouts[child_node_id] = taffy::Layout::with_order(order);
+        self.grid.children[child_node_id].taffy_layout = taffy::Layout::with_order(order);
+    }
+}
+
+struct GridChild<'a, Msg, R: Renderer> {
+    element: Element<'a, Msg, R>,
+    style: taffy::Style,
+    cache: taffy::Cache,
+    taffy_layout: taffy::Layout,
+    iced_child_layouts: Vec<iced_native::layout::Node>,
+}
+
+impl<'a, Msg, R: Renderer> GridChild<'a, Msg, R> {
+    fn new(element: Element<'a, Msg, R>, style: taffy::Style) -> Self {
+        Self {
+            element,
+            style,
+            cache: taffy::Cache::new(),
+            taffy_layout: taffy::NULL_LAYOUT,
+            iced_child_layouts: vec![],
+        }
     }
 }
 
@@ -207,11 +229,7 @@ pub struct Grid<'a, Msg, R: Renderer> {
     width: Length,
     height: Length,
     style: taffy::Style,
-    children: Vec<Element<'a, Msg, R>>,
-    child_styles: Vec<taffy::Style>,
-    child_caches: Vec<taffy::Cache>,
-    child_layouts: Vec<taffy::Layout>,
-    granchild_layouts: Vec<Vec<iced_native::layout::Node>>,
+    children: Vec<GridChild<'a, Msg, R>>,
 }
 
 impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
@@ -221,10 +239,6 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
             height: Length::Fill,
             style: taffy::Style::DEFAULT,
             children: vec![],
-            child_styles: vec![],
-            child_caches: vec![],
-            child_layouts: vec![],
-            granchild_layouts: vec![],
         }
     }
 
@@ -280,31 +294,19 @@ impl<'a, Msg, R: Renderer> Grid<'a, Msg, R> {
     ) -> Self {
         let mut style = taffy::Style::DEFAULT;
         callback(&mut style);
-        self.child_styles.push(style);
-        self.child_caches.push(taffy::Cache::new());
-        self.child_layouts.push(taffy::NULL_LAYOUT);
-        self.granchild_layouts.push(vec![]);
-        self.children.push(element.into());
-
+        self.children.push(GridChild::new(element.into(), style));
         self
     }
 
     pub fn with_child(mut self, element: impl Into<Element<'a, Msg, R>>) -> Self {
-        self.child_styles.push(taffy::Style::DEFAULT);
-        self.child_caches.push(taffy::Cache::new());
-        self.child_layouts.push(taffy::NULL_LAYOUT);
-        self.granchild_layouts.push(vec![]);
-        self.children.push(element.into());
-
+        self.children
+            .push(GridChild::new(element.into(), taffy::Style::DEFAULT));
         self
     }
 
     pub fn add_child(&mut self, element: impl Into<Element<'a, Msg, R>>) {
-        self.child_styles.push(taffy::Style::DEFAULT);
-        self.child_caches.push(taffy::Cache::new());
-        self.child_layouts.push(taffy::NULL_LAYOUT);
-        self.granchild_layouts.push(vec![]);
-        self.children.push(element.into());
+        self.children
+            .push(GridChild::new(element.into(), taffy::Style::DEFAULT));
     }
 
     /// Sets the width of the [`Grid`].
@@ -326,7 +328,10 @@ pub fn grid<'a, Msg, R: Renderer>() -> Grid<'a, Msg, R> {
 
 impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
     fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
+        self.children
+            .iter()
+            .map(|child| Tree::new(&child.element))
+            .collect()
     }
 
     fn diff(&self, tree: &mut Tree) {
@@ -334,7 +339,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             &self
                 .children
                 .iter()
-                .map(|child| child.as_widget())
+                .map(|child| child.element.as_widget())
                 .collect::<Vec<_>>(),
         );
     }
@@ -421,24 +426,21 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             sizing_mode,
         );
 
-        let granchild_layouts = self.granchild_layouts.clone();
         let child_nodes = self
-            .child_layouts
+            .children
             .iter_mut()
-            .zip(granchild_layouts)
-            .map(|(taffy_layout, granchild_layouts)| {
-                taffy_layout.round();
-
+            .map(|child| {
+                child.taffy_layout.round();
                 let mut iced_layout = layout::Node::with_children(
                     Size {
-                        width: taffy_layout.size.width,
-                        height: taffy_layout.size.height,
+                        width: child.taffy_layout.size.width,
+                        height: child.taffy_layout.size.height,
                     },
-                    granchild_layouts,
+                    child.iced_child_layouts.clone(),
                 );
                 iced_layout.move_to(Point {
-                    x: taffy_layout.location.x,
-                    y: taffy_layout.location.y,
+                    x: child.taffy_layout.location.x,
+                    y: child.taffy_layout.location.y,
                 });
                 iced_layout
             })
@@ -467,6 +469,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
                 .zip(layout.children())
                 .for_each(|((child, state), layout)| {
                     child
+                        .element
                         .as_widget()
                         .operate(state, layout, renderer, operation);
                 })
@@ -488,7 +491,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             .zip(&mut tree.children)
             .zip(layout.children())
             .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
+                child.element.as_widget_mut().on_event(
                     state,
                     event.clone(),
                     layout,
@@ -514,7 +517,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             .zip(&tree.children)
             .zip(layout.children())
             .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
+                child.element.as_widget().mouse_interaction(
                     state,
                     layout,
                     cursor_position,
@@ -542,7 +545,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             .zip(&tree.children)
             .zip(layout.children())
         {
-            child.as_widget_mut().draw(
+            child.element.as_widget_mut().draw(
                 state,
                 renderer,
                 theme,
@@ -566,7 +569,10 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             .zip(&mut tree.children)
             .zip(layout.children())
             .find_map(|((child, state), layout)| {
-                child.as_widget_mut().overlay(state, layout, renderer)
+                child
+                    .element
+                    .as_widget_mut()
+                    .overlay(state, layout, renderer)
             })
     }
 }
