@@ -11,9 +11,9 @@ use ::taffy::LayoutAlgorithm;
 mod taffy {
     pub use ::taffy::layout::{Layout, RunMode, SizeAndBaselines, SizingMode};
     pub use ::taffy::*;
+    pub use taffy::cache::Cache;
     pub use taffy::geometry::*;
     pub use taffy::prelude::*;
-    pub use taffy::cache::Cache;
 
     pub const NULL_LAYOUT: Layout = Layout {
         order: 0,
@@ -106,7 +106,12 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
         }
 
         let cache = &mut self.grid.child_caches[child_node_id];
-        let cached_size = cache.get(known_dimensions, available_space, taffy::RunMode::ComputeSize, sizing_mode);
+        let cached_size = cache.get(
+            known_dimensions,
+            available_space,
+            taffy::RunMode::ComputeSize,
+            sizing_mode,
+        );
 
         let size = cached_size
             .map(|size_and_baselines| size_and_baselines.size)
@@ -119,7 +124,12 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
                     width: iced_size.width,
                     height: iced_size.height,
                 };
-                cache.store(known_dimensions, available_space, taffy::RunMode::ComputeSize, taffy_size.into());
+                cache.store(
+                    known_dimensions,
+                    available_space,
+                    taffy::RunMode::ComputeSize,
+                    taffy_size.into(),
+                );
                 taffy_size
             });
 
@@ -154,7 +164,12 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
         }
 
         let cache = &mut self.grid.child_caches[child_node_id];
-        let cached_layout = cache.get(known_dimensions, available_space, taffy::RunMode::PeformLayout, sizing_mode);
+        let cached_layout = cache.get(
+            known_dimensions,
+            available_space,
+            taffy::RunMode::PeformLayout,
+            sizing_mode,
+        );
 
         let layout = cached_layout.unwrap_or_else(|| {
             // Compute child layout
@@ -169,11 +184,15 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
                 },
                 first_baselines: taffy::Point::NONE,
             };
-            cache.store(known_dimensions, available_space, taffy::RunMode::PeformLayout, taffy_layout);
+            cache.store(
+                known_dimensions,
+                available_space,
+                taffy::RunMode::PeformLayout,
+                taffy_layout,
+            );
             self.grid.granchild_layouts[child_node_id] = iced_layout.into_children();
             taffy_layout
         });
-
 
         // Return size
         layout
@@ -339,9 +358,6 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
     }
 
     fn measure(&mut self, renderer: &R, limits: &layout::Limits) -> iced_native::Size {
-
-        let child_count = self.children.len();
-
         let mut node_ref = GridLayoutTree {
             grid: self,
             renderer,
@@ -372,18 +388,11 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
 
         Size {
             width: size.width,
-            height: size.height
+            height: size.height,
         }
     }
 
     fn layout(&mut self, renderer: &R, limits: &layout::Limits) -> layout::Node {
-        // let limits = limits
-        //     .max_width(self.max_width)
-        //     .width(self.width)
-        //     .height(self.height);
-
-        let child_count = self.children.len();
-
         let mut node_ref = GridLayoutTree {
             grid: self,
             renderer,
@@ -413,7 +422,8 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
         );
 
         let granchild_layouts = self.granchild_layouts.clone();
-        let child_nodes = self.child_layouts
+        let child_nodes = self
+            .child_layouts
             .iter_mut()
             .zip(granchild_layouts)
             .map(|(taffy_layout, granchild_layouts)| {
