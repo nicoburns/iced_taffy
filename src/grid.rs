@@ -159,8 +159,8 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
         let iced_layout = self.grid.children[child_node_id]
             .as_widget_mut()
             .layout(&self.renderer, &limits);
-        self.granchild_layouts[child_node_id] = iced_layout.children().to_owned();
         let bounds = iced_layout.bounds();
+        self.granchild_layouts[child_node_id] = iced_layout.into_children();
 
         // Return size
         taffy::SizeAndBaselines {
