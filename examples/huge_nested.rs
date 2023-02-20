@@ -9,9 +9,11 @@ use std::iter;
 mod common {
     pub mod rect;
     pub mod colors;
+    pub mod layout_timer;
 }
 use common::rect::rect;
 use common::colors::*;
+use common::layout_timer::LayoutTimer;
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -111,8 +113,7 @@ impl Sandbox for Example {
         }
     }
 
-
     fn view(&self) -> Element<Message> {
-        build_taffy_deep_grid_hierarchy(4, 3).into()
+        LayoutTimer::new(build_taffy_deep_grid_hierarchy(4, 3)).into()
     }
 }
