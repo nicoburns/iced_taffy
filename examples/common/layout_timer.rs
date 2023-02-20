@@ -31,11 +31,11 @@ where
 
 impl<'a, Message: Clone, R: Renderer> Widget<Message, R> for LayoutTimer<'a, Message, R> {
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
+        self.content.as_widget().children()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        self.content.as_widget().diff(tree)
     }
 
     fn width(&self) -> Length {
