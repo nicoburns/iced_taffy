@@ -15,7 +15,7 @@ license = "MIT"
 [dependencies]
 iced = { git = "https://github.com/nicoburns/iced.git", rev = "237db4977d64d2e54dc172cc8156abadbfee1e83", features = ["image", "debug"] }
 iced_native = { git = "https://github.com/nicoburns/iced.git", rev = "237db4977d64d2e54dc172cc8156abadbfee1e83" }
-taffy = { git = "https://github.com/nicoburns/taffy.git", rev = "29570cab2cac70773911a8e9bfaad1c72dd5d290" }
+taffy = { git = "https://github.com/DioxusLabs/taffy.git", rev = "a99dc54ca0de208012b0d7b1c0023489bfd1919c" }
 
 [dev-dependencies]
 rand = "0.8.5"

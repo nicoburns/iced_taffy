@@ -36,45 +36,58 @@ struct GridLayoutTree<'node, 'a, 'b, Msg, R: Renderer> {
     layout: taffy::Layout,
 }
 
+const CURRENT_NODE_ID : taffy::NodeId = taffy::NodeId::new(u64::MAX);
+
+/// Iterator that wraps a range of u64, lazily converting them to NodeId's
+pub struct GridChildIter(std::ops::Range<usize>);
+impl Iterator for GridChildIter {
+    type Item = taffy::NodeId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|idx| idx.into())
+    }
+}
+
 impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node, 'a, 'b, Msg, R> {
-    type ChildId = usize;
-    type ChildIter<'iter> = std::ops::Range<usize> where Self: 'iter;
+    type ChildIter<'iter> = GridChildIter where Self: 'iter;
 
-    fn style(&self) -> &taffy::Style {
-        &self.grid.style
+    fn style(&self, node: taffy::NodeId) -> &taffy::Style {
+        if node == CURRENT_NODE_ID {
+            &self.grid.style
+        } else {
+            let child_index : usize = node.into();
+            &self.grid.children[child_index].style
+        }
     }
 
-    fn layout_mut(&mut self) -> &mut taffy::Layout {
-        &mut self.layout
+    fn layout_mut(&mut self, node: taffy::NodeId) -> &mut taffy::Layout {
+        if node == CURRENT_NODE_ID {
+            panic!();
+        } else {
+            let child_index : usize = node.into();
+            &mut self.grid.children[child_index].taffy_layout
+        }
     }
 
-    fn children(&self) -> Self::ChildIter<'_> {
-        0..(self.child_count())
+    fn children(&self, node: taffy::NodeId) -> Self::ChildIter<'_> {
+        GridChildIter(0..(self.child_count(node)))
     }
 
-    fn child_count(&self) -> usize {
+    fn child_count(&self, node: taffy::NodeId) -> usize {
         self.grid.children.len()
     }
 
-    fn child(&self, index: usize) -> Self::ChildId {
-        index
-    }
-
-    fn child_style(&self, child_node_id: Self::ChildId) -> &taffy::Style {
-        &self.grid.children[child_node_id].style
-    }
-
-    fn child_layout_mut(&mut self, child_node_id: Self::ChildId) -> &mut taffy::Layout {
-        &mut self.grid.children[child_node_id].taffy_layout
+    fn child(&self, node: taffy::NodeId, index: usize) -> taffy::NodeId {
+        index.into()
     }
 
     fn measure_child_size(
         &mut self,
-        child_node_id: Self::ChildId,
+        child_node_id: taffy::NodeId,
         known_dimensions: taffy::Size<Option<f32>>,
         _parent_size: taffy::Size<Option<f32>>,
         available_space: taffy::Size<taffy::AvailableSpace>,
-        sizing_mode: taffy::SizingMode,
+        _sizing_mode: taffy::SizingMode,
     ) -> taffy::Size<f32> {
         let mut limits = Limits::NONE;
 
@@ -94,12 +107,12 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
             limits = limits.width(Length::Fixed(width.round()))
         }
 
-        let child = &mut self.grid.children[child_node_id];
+        let child_index : usize = child_node_id.into();
+        let child = &mut self.grid.children[child_index];
         let cached_size = child.cache.get(
             known_dimensions,
             available_space,
             taffy::RunMode::ComputeSize,
-            sizing_mode,
         );
 
         let size = cached_size
@@ -129,11 +142,11 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
 
     fn perform_child_layout(
         &mut self,
-        child_node_id: Self::ChildId,
+        child_node_id: taffy::NodeId,
         known_dimensions: taffy::Size<Option<f32>>,
         _parent_size: taffy::Size<Option<f32>>,
         available_space: taffy::Size<taffy::AvailableSpace>,
-        sizing_mode: taffy::SizingMode,
+        _sizing_mode: taffy::SizingMode,
     ) -> taffy::SizeAndBaselines {
         let mut limits = Limits::NONE;
 
@@ -153,12 +166,12 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
             limits = limits.width(Length::Fixed(width.round()))
         }
 
-        let child = &mut self.grid.children[child_node_id];
+        let child_index : usize = child_node_id.into();
+        let child = &mut self.grid.children[child_index];
         let cached_layout = child.cache.get(
             known_dimensions,
             available_space,
             taffy::RunMode::PeformLayout,
-            sizing_mode,
         );
 
         let layout = cached_layout.unwrap_or_else(|| {
@@ -189,9 +202,9 @@ impl<'node, 'a, 'b, Msg, R: Renderer> taffy::LayoutTree for GridLayoutTree<'node
         layout
     }
 
-    fn perform_child_hidden_layout(&mut self, child_node_id: Self::ChildId, order: u32) {
-        self.grid.children[child_node_id].taffy_layout = taffy::Layout::with_order(order);
-    }
+    // fn perform_child_hidden_layout(&mut self, child_node_id: taffy::NodeId, order: u32) {
+    //     self.grid.children[child_node_id].taffy_layout = taffy::Layout::with_order(order);
+    // }
 }
 
 struct GridChild<'a, Msg, R: Renderer> {
@@ -374,6 +387,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
 
         let size = taffy::CssGridAlgorithm::measure_size(
             &mut node_ref,
+            CURRENT_NODE_ID,
             known_dimensions,
             parent_size,
             available_space,
@@ -409,6 +423,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
 
         let size_and_baselines = taffy::CssGridAlgorithm::perform_layout(
             &mut node_ref,
+            CURRENT_NODE_ID,
             known_dimensions,
             parent_size,
             available_space,
@@ -419,7 +434,7 @@ impl<'a, Msg, R: Renderer> Widget<Msg, R> for Grid<'a, Msg, R> {
             .children
             .iter_mut()
             .map(|child| {
-                child.taffy_layout.round();
+                // child.taffy_layout.round();
                 let mut iced_layout = layout::Node::with_children(
                     Size {
                         width: child.taffy_layout.size.width,
